@@ -1,5 +1,6 @@
 import praw
 import OAuth2Util
+import sqlite3
 
 class AidBot:
     
@@ -10,16 +11,22 @@ class AidBot:
         self.kw_singular = kw_singular
         self.kw_plural = kw_plural
         self.found_kw = {}
-        #self.comments = None
+        self.comments = None
         self.replied_to = self._get_replied_list()
     
     def _get_replied_list(self):
         """Makes sure we don't reply to the same comment twice."""
-    
+        with sqlite3.connect('done.db') as conn:
+            cur = conn.cursor()
+            result = cur.execute('SELECT id FROM done').fetchall()
+        return [str(x) for x in result]
+        
     def _get_comments(self):
         self.o.refresh()
         ccj = self.r.get_subreddit('climbingcirclejerk')
-        self.comments = [x for x in ccj.get_comments()]
+        self.comments = [x for x in ccj.get_comments(limit=100)]
+        for comment in self.comments:
+            print(comment.body)
         
     def _parse_comments(self, comments):
         """Look for keywords in comments, reply on the first hit."""
@@ -38,7 +45,6 @@ KEYWORDS_SINGULAR = ['chalk',
                      'honnold',
                      'gear',
                      'belay',
-                     'aid',
                      'harness']
 
 KEYWORDS_PLURAL = ['quickdraw',
