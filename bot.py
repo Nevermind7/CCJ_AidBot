@@ -1,11 +1,12 @@
-import praw
 import OAuth2Util
 import sqlite3
+import praw
 
 class AidBot:
     
     def __init__(self, ver, kw_singular, kw_plural):
-        self.user_agent = 'CCJ_AidBot v.{} by /u/individual_throwaway'.format(ver)
+        self.user_agent = 'CCJ_AidThingy.{} by /u/individual_throwaway'.format(ver)
+	self.user_agent.encode('utf-8')
         self.r = praw.Reddit(self.user_agent)
         self.o = OAuth2Util.OAuth2Util(self.r)
         self.kw_singular = kw_singular
@@ -25,19 +26,25 @@ class AidBot:
         self.o.refresh()
         ccj = self.r.get_subreddit('climbingcirclejerk')
         self.comments = [x for x in ccj.get_comments(limit=100)]
-        for comment in self.comments:
-            print(comment.body)
+#        for comment in self.comments:
+           # print(comment.body)
         
     def _parse_comments(self, comments):
-        """Look for keywords in comments, reply on the first hit."""
-        pass
+	for comment in self.comments:
+		s = comment.body
+		for k in KEYWORDS_SINGULAR:
+			if k in s:
+				print("found ", k, " in ", s)
+				#want to comment here
+	pass
     
     def _reply(self, submission, found):
         pass
     
     def run(self):
         self._get_comments()
-        print(len(self.comments))
+	self._parse_comments(self.comments)
+       # print(len(self.comments))
         
 VERSION = '0.1'
 KEYWORDS_SINGULAR = ['chalk',
@@ -45,7 +52,9 @@ KEYWORDS_SINGULAR = ['chalk',
                      'honnold',
                      'gear',
                      'belay',
-                     'harness']
+                     'harness',
+                     'spot',
+                     'core']
 
 KEYWORDS_PLURAL = ['quickdraw',
                    'anchor',
