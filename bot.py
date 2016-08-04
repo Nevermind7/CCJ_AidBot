@@ -52,8 +52,7 @@ class AidBot:
 		if keyword:
 			##need to save the comment.id in the DB so we don't keep trying to comment on the same damn thing
 			##self._save_reply(comment)
-			
-			comment.reply(keyword.title + " is aid.")
+			comment.reply(keyword.title() + " is aid.")
 	pass
     
     def _reply(self, submission, found):
