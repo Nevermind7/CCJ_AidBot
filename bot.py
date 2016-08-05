@@ -25,14 +25,11 @@ class AidBot:
     def _get_replied_list(self):
         """Make sure we don't reply to the same comment twice."""
         with sqlite3.connect('done.db') as conn:
+            conn.row_factory = lambda cursor, row: row[0]
             cur = conn.cursor()
             result = cur.execute('SELECT id FROM done').fetchall()
         self.replied_to = [str(x) for x in result]
-
-    def _save_reply(self, comment):
-        """Saves the comment we reply to in the done table by id."""
-        with sqlite3.connect('done.db') as conn:
-            conn.execute('insert into done (id) values (?)', (comment.id,))
+        return self.replied_to
             
     def _get_comments(self):
         """Ignore deleted comments (for some reason it still showed the comment bodies
@@ -43,27 +40,32 @@ class AidBot:
         self.comments = [x for x in sub.get_comments(limit=100) if x.author is not None]
         
     def _reply_to_comments(self, comments):
-        """Look for keywords in comments and reply with '<keyword> is aid'.
+        """Look for keywords in comments and reply with '<keyword> is/are aid'.
            Does not reply to itself and saves all comment IDs it replied to so it 
            doesn't reply to the same comment more than once."""
-        #TODO: include KEYWORDS_PLURAL (reply to first match in either of them, but
-        #for plural keywords, use 'are
-        keyword = ''
         for comment in self.comments:
+            keyword = ''
             if comment.author.name == 'Bots_are_aid' or comment.id in self.replied_to:
                 continue
-            s = comment.body.lower()
-            for k in KEYWORDS_SINGULAR:
-                if k in s:
-                    print("found ", k, " in ", s, " comment id: ", comment.id, comment.author)
-                    keyword = k
+            text = comment.body.lower()
+            for word in self.kw_singular:
+                if word in text:
+                    keyword = word
+                    break
+            if not keyword:
+                for word in self.kw_plural:
+                    if word in text:
+                        keyword = word
+                        break
             if keyword:
-                #need to save the comment.id in the DB so we don't keep trying to comment on the same damn thing
-                #comment.reply(keyword.title + " is aid.")
-                self._save_reply(comment)
+                if keyword in self.kw_singular:
+                    comment.reply(keyword + ' is aid.')
+                elif keyword in self.kw_plural:
+                    comment.reply(keyword + 's are aid.')
+                with sqlite3.connect('done.db') as conn:
+                    conn.execute('INSERT INTO done VALUES (?)', (comment.id,))
     
     def run(self):
-        self._get_replied_list()
         self._get_comments()
         self._reply_to_comments(self.comments)
         
