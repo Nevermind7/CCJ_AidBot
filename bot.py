@@ -1,6 +1,8 @@
-import OAuth2Util
 import sqlite3
 import praw
+import os
+
+import OAuth2Util
 
 class AidBot:
     
@@ -13,9 +15,13 @@ class AidBot:
         self.kw_plural = kw_plural
         self.found_kw = {}
         self.comments = None
-        self.replied_to = self._get_replied_list()
-    """Need to check the db to see if it exists. and then build the table structor if it doesn't"""
-     
+        self.replied_to = []
+        if os.path.exists(os.path.join(os.getcwd(), 'done.db')):
+            self.replied_to = self._get_replied_list()
+        else:
+            with sqlite3.connect('done.db') as conn:
+                conn.execute('CREATE TABLE done (id text)')
+
     def _get_replied_list(self):
         """Make sure we don't reply to the same comment twice."""
         with sqlite3.connect('done.db') as conn:
@@ -26,58 +32,35 @@ class AidBot:
     def _save_reply(self, comment):
         """Saves the comment we reply to in the done table by id."""
         with sqlite3.connect('done.db') as conn:
-            cur = conn.cursor()
-            result = cur.execute("insert into done.id values({c_id})".format(c_id = comment.id))
-            conn.commit()
+            conn.execute('insert into done (id) values (?)', (comment.id,))
             
     def _get_comments(self):
+        """Ignore deleted comments (for some reason it still showed the comment bodies
+           of spam posts you deleted from r/tradotto even though the API says
+           they should have been set to None)."""
         self.o.refresh()
         sub = self.r.get_subreddit('tradotto')##('climbingcirclejerk')
-        self.comments = [x for x in sub.get_comments(limit=100)]
+        self.comments = [x for x in sub.get_comments(limit=100) if x.author is not None]
         
-    def _parse_comments(self, comments):
- 	keyword = ''	
-	for comment in self.comments:
-		s = comment.body
-		for k in KEYWORDS_SINGULAR:
-			if k in s:
-				print("found ", k, " in ", s, " comment id: ", comment.id)
-				keyword = k
-				break
-			else:
-				reply = False
-		#want to comment here
-		if keyword:
-			##need to save the comment.id in the DB so we don't keep trying to comment on the same damn thing
-			##self._save_reply(comment)
-			comment.reply(keyword.title() + " is aid.")
-	pass
-    
-    def _reply(self, submission, found):
-        pass
     def _reply_to_comments(self, comments):
         """Look for keywords in comments and reply with '<keyword> is aid'.
            Does not reply to itself and saves all comment IDs it replied to so it 
            doesn't reply to the same comment more than once."""
         #TODO: include KEYWORDS_PLURAL (reply to first match in either of them, but
         #for plural keywords, use 'are
-        keyword = ''    
+        keyword = ''
         for comment in self.comments:
-            if comment.author == 'Bots_are_aid' or comment.id in self.replied_to:
-                #this does not work as intended yet
+            if comment.author.name == 'Bots_are_aid' or comment.id in self.replied_to:
                 continue
-            s = comment.body
+            s = comment.body.lower()
             for k in KEYWORDS_SINGULAR:
                 if k in s:
-                    #only ever finds one comment with a keyword in it, and by Bots_are_aid, too.
-                    #Why is that?! 
                     print("found ", k, " in ", s, " comment id: ", comment.id, comment.author)
                     keyword = k
             if keyword:
                 #need to save the comment.id in the DB so we don't keep trying to comment on the same damn thing
                 #comment.reply(keyword.title + " is aid.")
-                #self._save_reply(comment)
-                return
+                self._save_reply(comment)
     
     def run(self):
         self._get_replied_list()
