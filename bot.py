@@ -8,14 +8,13 @@ import OAuth2Util
 
 class AidBot:
     
-    def __init__(self, ver, kw_singular, kw_plural):
+    def __init__(self, ver, keywords, responses):
         self.user_agent = 'CCJ_AidThingy.{} by /u/individual_throwaway and u/tradotto'.format(ver)
         self.user_agent.encode('utf-8')
         self.r = praw.Reddit(self.user_agent)
         self.o = OAuth2Util.OAuth2Util(self.r)
-        self.kw_singular = kw_singular
-        self.kw_plural = kw_plural
-        self.found_kw = {}
+        self.responses = responses
+        self.keywords = keywords
         self.comments = None
         self.replied_to = []
         if os.path.exists(os.path.join(os.getcwd(), 'done.db')):
@@ -50,20 +49,12 @@ class AidBot:
             if comment.author.name == 'Bots_are_aid' or comment.id in self.replied_to:
                 continue
             text = comment.body.lower()
-            for word in self.kw_singular:
+            for word in self.keywords:
                 if word in text:
                     keyword = word
                     break
-            if not keyword:
-                for word in self.kw_plural:
-                    if word in text:
-                        keyword = word
-                        break
             if keyword and random.random() > 0.5:
-                if keyword in self.kw_singular:
-                    comment.reply(keyword + ' is aid.')
-                elif keyword in self.kw_plural:
-                    comment.reply(keyword + 's are aid.')
+                comment.reply(keyword + self.responses[self.keywords[keyword]])
                 with sqlite3.connect('done.db') as conn:
                     conn.execute('INSERT INTO done VALUES (?)', (comment.id,))
     
@@ -75,10 +66,10 @@ __version__ = '0.2'
 
 def main():
     with open('keywords.json', 'r') as keywords:
-        keywords = json.load(keywords)
-    kw_singular = keywords['singular']
-    kw_plural = keywords['plural']
-    bot = AidBot(__version__, kw_singular, kw_plural)
+        keyword_data = json.load(keywords)
+    keywords = keyword_data['keywords']
+    responses = keyword_data['responses']
+    bot = AidBot(__version__, keywords, responses)
     bot.run()
 
 if __name__ == '__main__':
