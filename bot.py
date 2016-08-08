@@ -2,6 +2,7 @@ import sqlite3
 import praw
 import os
 import random
+import json
 
 import OAuth2Util
 
@@ -70,36 +71,14 @@ class AidBot:
         self._get_comments()
         self._reply_to_comments(self.comments)
         
-VERSION = '0.2'
-KEYWORDS_SINGULAR = ['chalk',
-                     'pof',
-                     'honnold',
-                     'gear',
-                     'belay',
-                     'harness',
-                     'spot',
-                     'core']
-
-KEYWORDS_PLURAL = ['quickdraw',
-                   'anchor',
-                   'shoe',
-                   'hold',
-                   'foothold',
-                   'helmet',
-                   'cam',
-                   'nut',
-                   'rope',
-                   'ascender',
-                   'belayer',
-                   'jug',
-                   'pinch',
-                   'crimp',
-                   'carabiner',
-                   'biner']
-
+__version__ = '0.2'
 
 def main():
-    bot = AidBot(VERSION, KEYWORDS_SINGULAR, KEYWORDS_PLURAL)
+    with open('keywords.json', 'r') as keywords:
+        keywords = json.load(keywords)
+    kw_singular = keywords['singular']
+    kw_plural = keywords['plural']
+    bot = AidBot(__version__, kw_singular, kw_plural)
     bot.run()
 
 if __name__ == '__main__':
