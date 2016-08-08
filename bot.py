@@ -1,6 +1,7 @@
 import sqlite3
 import praw
 import os
+import random
 
 import OAuth2Util
 
@@ -57,7 +58,7 @@ class AidBot:
                     if word in text:
                         keyword = word
                         break
-            if keyword:
+            if keyword and random.random() > 0.5:
                 if keyword in self.kw_singular:
                     comment.reply(keyword + ' is aid.')
                 elif keyword in self.kw_plural:
@@ -69,7 +70,7 @@ class AidBot:
         self._get_comments()
         self._reply_to_comments(self.comments)
         
-VERSION = '0.1'
+VERSION = '0.2'
 KEYWORDS_SINGULAR = ['chalk',
                      'pof',
                      'honnold',
