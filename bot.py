@@ -62,8 +62,11 @@ class AidBot:
                 if word in text:
                     keyword = word
                     break
-            if keyword and random.random() > 0.5:
-                comment.reply(keyword.capitalize() + self.responses[self.keywords[keyword]])
+            if keyword:
+                try:
+                    comment.reply(keyword.capitalize() + self.responses[self.keywords[keyword]])
+                except:
+                    continue
                 with sqlite3.connect('done.db') as conn:
                     conn.execute('INSERT INTO done VALUES (?)', (comment.id,))
 
@@ -77,9 +80,12 @@ class AidBot:
                 if word in title or word in text:
                     keyword = word
                     break
-            if keyword and random.random() > 0.5:
-                submission.add_comment(keyword.capitalize() +\
-                                       self.responses[self.keywords[keyword]])
+            if keyword:
+                try:
+                    submission.add_comment(keyword.capitalize() +\
+                                           self.responses[self.keywords[keyword]])
+                except:
+                    continue
                 with sqlite3.connect('done.db') as conn:
                     conn.execute('INSERT INTO done VALUES (?)', (submission.id,))    
     
