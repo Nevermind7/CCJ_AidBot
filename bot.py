@@ -13,7 +13,7 @@ class AidBot:
         self.user_agent.encode('utf-8')
         self.r = praw.Reddit(self.user_agent)
         self.o = OAuth2Util.OAuth2Util(self.r)
-        self.target = 'tradotto'
+        self.target = 'climbingcirclejerk'
         self.responses = responses
         self.keywords = keywords
         self.comments = None
@@ -60,10 +60,10 @@ class AidBot:
             text = comment.body.lower()
             for word in self.keywords:
                 if word in text:
-                    keyword = word.capitalize()
+                    keyword = word
                     break
             if keyword and random.random() > 0.5:
-                comment.reply(keyword + self.responses[self.keywords[keyword]])
+                comment.reply(keyword.capitalize() + self.responses[self.keywords[keyword]])
                 with sqlite3.connect('done.db') as conn:
                     conn.execute('INSERT INTO done VALUES (?)', (comment.id,))
 
@@ -75,10 +75,11 @@ class AidBot:
             text = submission.selftext.lower()
             for word in self.keywords:
                 if word in title or word in text:
-                    keyword = word.capitalize()
+                    keyword = word
                     break
             if keyword and random.random() > 0.5:
-                submission.add_comment(keyword + self.responses[self.keywords[keyword]])
+                submission.add_comment(keyword.capitalize() +\
+                                       self.responses[self.keywords[keyword]])
                 with sqlite3.connect('done.db') as conn:
                     conn.execute('INSERT INTO done VALUES (?)', (submission.id,))    
     
@@ -87,13 +88,15 @@ class AidBot:
         self._get_comments()
         self._reply_to_content(self.submissions, self.comments)
         
-__version__ = '0.2'
+__version__ = '0.3'
 
 def main():
+    
     with open('keywords.json', 'r') as keywords:
         keyword_data = json.load(keywords)
     keywords = keyword_data['keywords']
     responses = keyword_data['responses']
+    
     bot = AidBot(__version__, keywords, responses)
     bot.run()
 
