@@ -13,9 +13,11 @@ class AidBot:
         self.user_agent.encode('utf-8')
         self.r = praw.Reddit(self.user_agent)
         self.o = OAuth2Util.OAuth2Util(self.r)
+        self.target = 'tradotto'
         self.responses = responses
         self.keywords = keywords
         self.comments = None
+        self.submissions = None
         self.replied_to = []
         if os.path.exists(os.path.join(os.getcwd(), 'done.db')):
             self.replied_to = self._get_replied_list()
@@ -24,7 +26,7 @@ class AidBot:
                 conn.execute('CREATE TABLE done (id text)')
 
     def _get_replied_list(self):
-        """Make sure we don't reply to the same comment twice."""
+        """Make sure we don't reply to the same comment/submission twice."""
         with sqlite3.connect('done.db') as conn:
             conn.row_factory = lambda cursor, row: row[0]
             cur = conn.cursor()
@@ -37,13 +39,20 @@ class AidBot:
            of spam posts you deleted from r/tradotto even though the API says
            they should have been set to None)."""
         self.o.refresh()
-        sub = self.r.get_subreddit('tradotto')##('climbingcirclejerk')
+        sub = self.r.get_subreddit(self.target)
         self.comments = [x for x in sub.get_comments(limit=100) if x.author is not None]
         
-    def _reply_to_comments(self, comments):
-        """Look for keywords in comments and reply with '<keyword> is/are aid'.
-           Does not reply to itself and saves all comment IDs it replied to so it 
-           doesn't reply to the same comment more than once."""
+    def _get_submissions(self):
+        """Ignore submissions by deleted users (assuming this suffers from the same
+           bug as the comments, better safe than sorry."""
+        self.o.refresh()
+        sub = self.r.get_subreddit(self.target)
+        self.submissions = [x for x in sub.get_new(limit=100) if x.author is not None]
+        
+    def _reply_to_content(self, submissions, comments):
+        """Look for keywords in content and reply with '<keyword> is/are aid'.
+           Does not reply to itself and saves all content IDs it replied to so it 
+           doesn't reply to the same content more than once."""
         for comment in self.comments:
             keyword = ''
             if comment.author.name == 'Bots_are_aid' or comment.id in self.replied_to:
@@ -51,16 +60,32 @@ class AidBot:
             text = comment.body.lower()
             for word in self.keywords:
                 if word in text:
-                    keyword = word
+                    keyword = word.capitalize()
                     break
             if keyword and random.random() > 0.5:
                 comment.reply(keyword + self.responses[self.keywords[keyword]])
                 with sqlite3.connect('done.db') as conn:
                     conn.execute('INSERT INTO done VALUES (?)', (comment.id,))
+
+        for submission in submissions:
+            keyword = ''
+            if submission.author.name == 'Bots_are_aid' or submission.id in self.replied_to:
+                continue
+            title = submission.title.lower()
+            text = submission.selftext.lower()
+            for word in self.keywords:
+                if word in title or word in text:
+                    keyword = word.capitalize()
+                    break
+            if keyword and random.random() > 0.5:
+                submission.add_comment(keyword + self.responses[self.keywords[keyword]])
+                with sqlite3.connect('done.db') as conn:
+                    conn.execute('INSERT INTO done VALUES (?)', (submission.id,))    
     
     def run(self):
+        self._get_submissions()
         self._get_comments()
-        self._reply_to_comments(self.comments)
+        self._reply_to_content(self.submissions, self.comments)
         
 __version__ = '0.2'
 
