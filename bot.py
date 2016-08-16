@@ -98,6 +98,8 @@ __version__ = '0.3'
 
 def main():
     
+	os.chdir(os.getcwd())
+	
     with open('keywords.json', 'r') as keywords:
         keyword_data = json.load(keywords)
     keywords = keyword_data['keywords']
