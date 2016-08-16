@@ -1,6 +1,5 @@
 import sqlite3
 import praw
-import os
 import random
 import json
 
@@ -97,8 +96,6 @@ class AidBot:
 __version__ = '0.3'
 
 def main():
-    
-    os.chdir(os.getcwd())
 
     with open('keywords.json', 'r') as keywords:
         keyword_data = json.load(keywords)
