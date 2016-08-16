@@ -1,8 +1,12 @@
 import sqlite3
-import praw
 import os
 import random
 import json
+import warnings
+
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    import praw
 
 import OAuth2Util
 
